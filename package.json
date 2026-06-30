@@ -1,0 +1,11 @@
+{
+  "name": "ai-resume-enhancer",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "install:all": "cd backend && npm install && cd ../frontend && npm install",
+    "setup": "cd backend && cp .env.example .env & cd frontend && cp .env.local.example .env.local"
+  }
+}
