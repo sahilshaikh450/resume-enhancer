@@ -2,7 +2,7 @@ import Groq from 'groq-sdk';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const MODEL = 'llama-3.1-8b-instant';
+const MODEL = 'openai/gpt-oss-20b';
 function getGroq() {
   return new Groq({ apiKey: process.env.GROQ_API_KEY });
 }
