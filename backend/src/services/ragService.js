@@ -2,7 +2,7 @@ import Groq from 'groq-sdk';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const MODEL = 'llama-3.1-8b-instant';
+const MODEL = process.env.GROQ_MODEL || 'llama3-8b-8192';
 const store = new Map();
 
 function getGroq() {
