@@ -1,8 +1,7 @@
 import Groq from 'groq-sdk';
 import dotenv from 'dotenv';
 dotenv.config();
-
-const MODEL = process.env.GROQ_MODEL || 'llama3-8b-8192';
+const MODEL = 'openai/gpt-oss-20b';
 const store = new Map();
 
 function getGroq() {
