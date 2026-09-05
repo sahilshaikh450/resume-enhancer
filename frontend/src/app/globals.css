@@ -3,31 +3,18 @@
 @tailwind utilities;
 
 @layer base {
-  body {
-    @apply bg-gray-50 text-gray-900 antialiased;
-  }
+  body { @apply bg-[#0a0a0f] text-white antialiased; }
+  * { scrollbar-width: thin; scrollbar-color: #6366f1 #1a1a2e; }
 }
 
 @layer components {
-  .card {
-    @apply bg-white rounded-2xl border border-gray-100 shadow-sm;
-  }
-  .btn-primary {
-    @apply bg-brand text-white px-5 py-2.5 rounded-xl font-medium text-sm hover:bg-brand-dark disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-2;
-  }
-  .btn-secondary {
-    @apply bg-gray-100 text-gray-700 px-5 py-2.5 rounded-xl font-medium text-sm hover:bg-gray-200 disabled:opacity-40 transition-all flex items-center gap-2;
-  }
-  .input {
-    @apply w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-all bg-white;
-  }
-  .textarea {
-    @apply w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand transition-all bg-white resize-none;
-  }
-  .label {
-    @apply text-xs font-semibold text-gray-500 uppercase tracking-wide;
-  }
-  .badge {
-    @apply text-xs font-medium px-2.5 py-1 rounded-full;
-  }
+  .card { @apply bg-[#12121a] rounded-2xl border border-white/10; }
+  .btn-primary { @apply bg-purple-600 text-white px-5 py-2.5 rounded-xl font-medium text-sm hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-2; }
+  .btn-secondary { @apply bg-white/10 text-white px-5 py-2.5 rounded-xl font-medium text-sm hover:bg-white/20 transition-all flex items-center gap-2; }
+  .btn-outline { @apply border border-white/20 text-white px-5 py-2.5 rounded-xl font-medium text-sm hover:border-purple-500 hover:bg-purple-500/10 transition-all flex items-center gap-2; }
+  .input { @apply w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-purple-500 transition-all; }
+  .label { @apply text-xs font-semibold text-white/40 uppercase tracking-wider; }
+  .badge { @apply text-xs font-medium px-2.5 py-1 rounded-full; }
+  .glass { @apply bg-white/5 backdrop-blur-sm border border-white/10; }
+  .textarea { @apply w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-purple-500 transition-all resize-none; }
 }
