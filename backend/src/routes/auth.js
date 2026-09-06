@@ -9,17 +9,12 @@ const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey123';
 const MONGO_URI = process.env.MONGODB_URI;
 
+let client;
 let db;
+
 async function getDB() {
   if (db) return db;
-  const client = new MongoClient(MONGO_URI, {
-    serverSelectionTimeoutMS: 30000,
-    connectTimeoutMS: 30000,
-    socketTimeoutMS: 30000,
-    tls: true,
-    tlsAllowInvalidCertificates: true,
-    tlsAllowInvalidHostnames: true,
-  });
+  client = new MongoClient(MONGO_URI);
   await client.connect();
   db = client.db('resume-enhancer');
   console.log('MongoDB connected!');
@@ -51,7 +46,7 @@ router.post('/register', async (req, res) => {
     const token = jwt.sign({ userId: result.insertedId, email, name }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ success: true, token, user: { name, email, id: result.insertedId } });
   } catch (err) {
-    console.error('Register error:', err);
+    console.error('Register error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -67,7 +62,7 @@ router.post('/login', async (req, res) => {
     const token = jwt.sign({ userId: user._id, email: user.email, name: user.name }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ success: true, token, user: { name: user.name, email: user.email, id: user._id } });
   } catch (err) {
-    console.error('Login error:', err);
+    console.error('Login error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -87,7 +82,6 @@ router.post('/google', async (req, res) => {
     const token = jwt.sign({ userId: user._id, email: user.email, name: user.name }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ success: true, token, user: { name: user.name, email: user.email, id: user._id } });
   } catch (err) {
-    console.error('Google auth error:', err);
     res.status(500).json({ error: err.message });
   }
 });
