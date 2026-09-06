@@ -206,7 +206,7 @@ export default function HomePage() {
 
       {/* Auth Modal */}
       {showAuth && (
-        <AuthModal onClose={() => { setShowAuth(false); if (isLoggedIn) setShowApp(true); }} />
+        <AuthModal onClose={(goToDashboard) => { setShowAuth(false); if (goToDashboard || isLoggedIn) setShowApp(true); }} />
       )}
     </div>
   );
