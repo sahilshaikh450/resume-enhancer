@@ -13,10 +13,12 @@ let db;
 async function getDB() {
   if (db) return db;
   const client = new MongoClient(MONGO_URI, {
+    serverSelectionTimeoutMS: 30000,
+    connectTimeoutMS: 30000,
+    socketTimeoutMS: 30000,
     tls: true,
-    tlsAllowInvalidCertificates: false,
-    serverSelectionTimeoutMS: 10000,
-    connectTimeoutMS: 10000,
+    tlsAllowInvalidCertificates: true,
+    tlsAllowInvalidHostnames: true,
   });
   await client.connect();
   db = client.db('resume-enhancer');
