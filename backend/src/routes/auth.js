@@ -12,9 +12,15 @@ const MONGO_URI = process.env.MONGODB_URI;
 let db;
 async function getDB() {
   if (db) return db;
-  const client = new MongoClient(MONGO_URI);
+  const client = new MongoClient(MONGO_URI, {
+    tls: true,
+    tlsAllowInvalidCertificates: false,
+    serverSelectionTimeoutMS: 10000,
+    connectTimeoutMS: 10000,
+  });
   await client.connect();
   db = client.db('resume-enhancer');
+  console.log('MongoDB connected!');
   return db;
 }
 
@@ -37,10 +43,15 @@ router.post('/register', async (req, res) => {
     if (await db.collection('users').findOne({ email }))
       return res.status(400).json({ error: 'Email already registered' });
     const hashed = await bcrypt.hash(password, 12);
-    const result = await db.collection('users').insertOne({ name, email, password: hashed, provider: 'email', createdAt: new Date() });
+    const result = await db.collection('users').insertOne({
+      name, email, password: hashed, provider: 'email', createdAt: new Date()
+    });
     const token = jwt.sign({ userId: result.insertedId, email, name }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ success: true, token, user: { name, email, id: result.insertedId } });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    console.error('Register error:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.post('/login', async (req, res) => {
@@ -53,7 +64,10 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     const token = jwt.sign({ userId: user._id, email: user.email, name: user.name }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ success: true, token, user: { name: user.name, email: user.email, id: user._id } });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    console.error('Login error:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.post('/google', async (req, res) => {
@@ -63,36 +77,54 @@ router.post('/google', async (req, res) => {
     const db = await getDB();
     let user = await db.collection('users').findOne({ email });
     if (!user) {
-      const result = await db.collection('users').insertOne({ name, email, googleId, avatar, provider: 'google', createdAt: new Date() });
+      const result = await db.collection('users').insertOne({
+        name, email, googleId, avatar, provider: 'google', createdAt: new Date()
+      });
       user = { _id: result.insertedId, name, email };
     }
     const token = jwt.sign({ userId: user._id, email: user.email, name: user.name }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ success: true, token, user: { name: user.name, email: user.email, id: user._id } });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    console.error('Google auth error:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.get('/me', authMiddleware, async (req, res) => {
   try {
     const db = await getDB();
-    const user = await db.collection('users').findOne({ _id: new ObjectId(req.user.userId) }, { projection: { password: 0 } });
+    const user = await db.collection('users').findOne(
+      { _id: new ObjectId(req.user.userId) },
+      { projection: { password: 0 } }
+    );
     res.json({ success: true, user });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.post('/history', authMiddleware, async (req, res) => {
   try {
     const db = await getDB();
-    await db.collection('history').insertOne({ userId: new ObjectId(req.user.userId), ...req.body, createdAt: new Date() });
+    await db.collection('history').insertOne({
+      userId: new ObjectId(req.user.userId), ...req.body, createdAt: new Date()
+    });
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.get('/history', authMiddleware, async (req, res) => {
   try {
     const db = await getDB();
-    const history = await db.collection('history').find({ userId: new ObjectId(req.user.userId) }).sort({ createdAt: -1 }).limit(20).toArray();
+    const history = await db.collection('history')
+      .find({ userId: new ObjectId(req.user.userId) })
+      .sort({ createdAt: -1 }).limit(20).toArray();
     res.json({ success: true, data: history });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 export default router;
