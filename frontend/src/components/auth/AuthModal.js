@@ -31,7 +31,7 @@ export default function AuthModal({ onClose }) {
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Something went wrong');
       login(data.token, data.user);
-      onClose();
+      onClose(true);
     } catch (err) {
       setError(err.message);
     } finally {
