@@ -18,47 +18,71 @@ router.post('/generate', async (req, res) => {
     }
 
     const groq = getGroq();
-    const response = await groq.chat.completions.create({
+
+    // Generate cover letter as plain text
+    const letterRes = await groq.chat.completions.create({
       model: MODEL,
-      max_tokens: 1500,
+      max_tokens: 800,
       temperature: 0.7,
       messages: [
         {
           role: 'system',
-          content: `You are an expert career coach. Generate a cover letter and return ONLY a valid JSON object with no extra text, no markdown, no backticks. Just raw JSON.`
+          content: `You are an expert career coach. Write a ${tone || 'professional'} cover letter. Return only the cover letter text, nothing else.`
         },
         {
           role: 'user',
-          content: `Generate a cover letter based on:
-
-Resume: ${resumeText.slice(0, 1500)}
-
-Job Description: ${jobDescription.slice(0, 1000)}
-
+          content: `Write a cover letter for:
 Company: ${companyName || 'the company'}
 Job Title: ${jobTitle || 'the position'}
 Tone: ${tone || 'professional'}
 
-Return ONLY this JSON with no extra text:
-{"subject":"Application for ${jobTitle || 'the position'} at ${companyName || 'the company'}","coverLetter":"Dear Hiring Manager,\\n\\n[3-4 paragraphs here]\\n\\nSincerely,\\n[Candidate Name]","keyPoints":["key strength 1","key strength 2","key strength 3"],"wordCount":300,"matchScore":80}`
+Resume Summary: ${resumeText.slice(0, 800)}
+Job Description: ${jobDescription.slice(0, 600)}
+
+Write 3-4 paragraphs. Start with "Dear Hiring Manager," and end with "Sincerely, [Your Name]"`
         }
       ]
     });
 
-    let text = response.choices[0].message.content.trim();
-    
-    // Clean up any markdown or extra text
-    text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    
-    // Find JSON in response
-    const jsonStart = text.indexOf('{');
-    const jsonEnd = text.lastIndexOf('}');
-    if (jsonStart !== -1 && jsonEnd !== -1) {
-      text = text.slice(jsonStart, jsonEnd + 1);
-    }
+    const coverLetter = letterRes.choices[0].message.content.trim();
 
-    const data = JSON.parse(text);
-    res.json({ success: true, data });
+    // Generate key points separately
+    const pointsRes = await groq.chat.completions.create({
+      model: MODEL,
+      max_tokens: 200,
+      temperature: 0.3,
+      messages: [
+        {
+          role: 'system',
+          content: 'Extract 3 key strengths from this resume for this job. Return only 3 bullet points, one per line, no numbering.'
+        },
+        {
+          role: 'user',
+          content: `Resume: ${resumeText.slice(0, 500)}\nJob: ${jobDescription.slice(0, 300)}`
+        }
+      ]
+    });
+
+    const pointsText = pointsRes.choices[0].message.content.trim();
+    const keyPoints = pointsText.split('\n').filter(p => p.trim()).slice(0, 3).map(p => p.replace(/^[-•*]\s*/, '').trim());
+
+    // Calculate match score based on keyword overlap
+    const resumeWords = new Set(resumeText.toLowerCase().split(/\W+/));
+    const jobWords = jobDescription.toLowerCase().split(/\W+/).filter(w => w.length > 4);
+    const matched = jobWords.filter(w => resumeWords.has(w)).length;
+    const matchScore = Math.min(95, Math.max(45, Math.round((matched / Math.max(jobWords.length, 1)) * 100 * 2.5)));
+
+    res.json({
+      success: true,
+      data: {
+        subject: `Application for ${jobTitle || 'the position'} at ${companyName || 'the company'}`,
+        coverLetter,
+        keyPoints: keyPoints.length > 0 ? keyPoints : ['Strong technical skills', 'Relevant project experience', 'Team collaboration'],
+        wordCount: coverLetter.split(' ').length,
+        matchScore
+      }
+    });
+
   } catch (err) {
     console.error('Cover letter error:', err.message);
     res.status(500).json({ error: err.message });
