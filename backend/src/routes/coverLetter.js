@@ -22,37 +22,42 @@ router.post('/generate', async (req, res) => {
       model: MODEL,
       max_tokens: 1500,
       temperature: 0.7,
-      response_format: { type: 'json_object' },
       messages: [
         {
           role: 'system',
-          content: `You are an expert career coach and professional writer. Generate a compelling, personalized cover letter. Always respond with valid JSON only.`
+          content: `You are an expert career coach. Generate a cover letter and return ONLY a valid JSON object with no extra text, no markdown, no backticks. Just raw JSON.`
         },
         {
           role: 'user',
-          content: `Generate a professional cover letter based on:
+          content: `Generate a cover letter based on:
 
-Resume: ${resumeText}
+Resume: ${resumeText.slice(0, 1500)}
 
-Job Description: ${jobDescription}
+Job Description: ${jobDescription.slice(0, 1000)}
 
 Company: ${companyName || 'the company'}
 Job Title: ${jobTitle || 'the position'}
 Tone: ${tone || 'professional'}
 
-Return JSON:
-{
-  "subject": "Application for [Job Title] Position",
-  "coverLetter": "Full cover letter text here with proper paragraphs...",
-  "keyPoints": ["point1", "point2", "point3"],
-  "wordCount": 320,
-  "matchScore": 85
-}`
+Return ONLY this JSON with no extra text:
+{"subject":"Application for ${jobTitle || 'the position'} at ${companyName || 'the company'}","coverLetter":"Dear Hiring Manager,\\n\\n[3-4 paragraphs here]\\n\\nSincerely,\\n[Candidate Name]","keyPoints":["key strength 1","key strength 2","key strength 3"],"wordCount":300,"matchScore":80}`
         }
       ]
     });
 
-    const data = JSON.parse(response.choices[0].message.content);
+    let text = response.choices[0].message.content.trim();
+    
+    // Clean up any markdown or extra text
+    text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    
+    // Find JSON in response
+    const jsonStart = text.indexOf('{');
+    const jsonEnd = text.lastIndexOf('}');
+    if (jsonStart !== -1 && jsonEnd !== -1) {
+      text = text.slice(jsonStart, jsonEnd + 1);
+    }
+
+    const data = JSON.parse(text);
     res.json({ success: true, data });
   } catch (err) {
     console.error('Cover letter error:', err.message);
