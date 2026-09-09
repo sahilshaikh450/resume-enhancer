@@ -7,6 +7,7 @@ import interviewRoutes from './routes/interview.js';
 import chatRoutes from './routes/chat.js';
 import ragRoutes from './routes/rag.js';
 import authRoutes from './routes/auth.js';
+import coverLetterRoutes from './routes/coverLetter.js';
 
 dotenv.config();
 
@@ -26,6 +27,7 @@ app.use('/api/resume', resumeRoutes);
 app.use('/api/interview', interviewRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/rag', ragRoutes);
+app.use('/api/cover-letter', coverLetterRoutes);
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
