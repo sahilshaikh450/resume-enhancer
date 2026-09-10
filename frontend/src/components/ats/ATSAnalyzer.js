@@ -3,6 +3,8 @@ import { useState, useRef } from 'react';
 import { Upload, FileText, CheckCircle, XCircle, AlertCircle, Target, Zap, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
 import { resumeAPI } from '../../lib/api';
 
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
 function ScoreCircle({ score, size = 'lg' }) {
   const color = score >= 80 ? '#22c55e' : score >= 60 ? '#f59e0b' : '#ef4444';
   const bg = score >= 80 ? 'bg-green-50' : score >= 60 ? 'bg-amber-50' : 'bg-red-50';
@@ -58,13 +60,14 @@ const SECTION_LABELS = {
   keywords: 'Keyword Match',
 };
 
-export default function ATSAnalyzer({ sessionId, onResumeAnalyzed }) {
+export default function ATSAnalyzer({ sessionId, onResumeAnalyzed, userId }) {
   const [file, setFile] = useState(null);
   const [jobDesc, setJobDesc] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [showSummary, setShowSummary] = useState(false);
+  const [saved, setSaved] = useState(false);
   const fileRef = useRef();
 
   function handleDrop(e) {
@@ -74,15 +77,40 @@ export default function ATSAnalyzer({ sessionId, onResumeAnalyzed }) {
     else setError('Please upload a PDF file only!');
   }
 
+  async function saveToHistory(data, fileName) {
+    if (!userId) return;
+    try {
+      await fetch(`${API}/api/history/save`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          resumeName: fileName || 'Resume',
+          atsScore: data.overall_ats_score,
+          sectionScores: data.section_scores || {},
+          matchedKeywords: data.matched_keywords || [],
+          missingKeywords: data.missing_keywords || [],
+          suggestions: data.suggestions || [],
+        })
+      });
+      setSaved(true);
+    } catch (err) {
+      console.error('Failed to save history:', err);
+    }
+  }
+
   async function handleAnalyze() {
     if (!file) return;
     setLoading(true);
     setError('');
     setResult(null);
+    setSaved(false);
     try {
       const response = await resumeAPI.atsCheck(file, jobDesc, sessionId);
       setResult(response.data);
       if (onResumeAnalyzed) onResumeAnalyzed(response.data.resumeText || '');
+      // Auto-save to history
+      await saveToHistory(response.data, file.name);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -92,7 +120,6 @@ export default function ATSAnalyzer({ sessionId, onResumeAnalyzed }) {
 
   return (
     <div className="space-y-6">
-      {/* Upload Area */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <div className="space-y-3">
           <label className="label">Upload Resume (PDF)</label>
@@ -148,13 +175,17 @@ export default function ATSAnalyzer({ sessionId, onResumeAnalyzed }) {
         </div>
       )}
 
+      {saved && (
+        <div className="flex items-center gap-2 text-green-400 text-sm bg-green-500/10 border border-green-500/20 rounded-xl p-3">
+          <CheckCircle className="w-4 h-4 shrink-0" />
+          Scan saved to your history!
+        </div>
+      )}
+
       {result && (
         <div className="space-y-6 animate-in fade-in">
-
-          {/* Top row */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
             <ScoreCircle score={result.overall_ats_score} />
-
             <div className="lg:col-span-2 space-y-3">
               <div className="flex items-center justify-between">
                 <div>
@@ -170,8 +201,6 @@ export default function ATSAnalyzer({ sessionId, onResumeAnalyzed }) {
                    result.overall_ats_score >= 60 ? '⚠️ Needs Work' : '❌ Not ATS Ready'}
                 </span>
               </div>
-
-              {/* Section scores */}
               <div className="space-y-2">
                 {Object.entries(result.section_scores || {}).map(([key, val]) => (
                   <SectionScore key={key} label={SECTION_LABELS[key] || key} score={val} />
@@ -180,7 +209,6 @@ export default function ATSAnalyzer({ sessionId, onResumeAnalyzed }) {
             </div>
           </div>
 
-          {/* Keywords */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             {result.matched_keywords?.length > 0 && (
               <div className="bg-green-50 rounded-2xl p-4 space-y-2">
@@ -204,7 +232,6 @@ export default function ATSAnalyzer({ sessionId, onResumeAnalyzed }) {
             )}
           </div>
 
-          {/* Skills */}
           {result.skills_found?.length > 0 && (
             <div>
               <p className="label mb-2">Skills Found in Resume</p>
@@ -216,7 +243,6 @@ export default function ATSAnalyzer({ sessionId, onResumeAnalyzed }) {
             </div>
           )}
 
-          {/* Strengths & Weaknesses */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             {result.strengths?.length > 0 && (
               <div className="space-y-2">
@@ -240,7 +266,6 @@ export default function ATSAnalyzer({ sessionId, onResumeAnalyzed }) {
             )}
           </div>
 
-          {/* Critical Fixes */}
           {result.critical_fixes?.length > 0 && (
             <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-2">
               <p className="label text-amber-700 flex items-center gap-1"><Zap className="w-3.5 h-3.5" /> Critical Fixes (Do These First!)</p>
@@ -252,7 +277,6 @@ export default function ATSAnalyzer({ sessionId, onResumeAnalyzed }) {
             </div>
           )}
 
-          {/* AI Suggestions */}
           {result.suggestions?.length > 0 && (
             <div className="space-y-2">
               <p className="label flex items-center gap-1"><TrendingUp className="w-3.5 h-3.5" /> AI Suggestions</p>
@@ -264,7 +288,6 @@ export default function ATSAnalyzer({ sessionId, onResumeAnalyzed }) {
             </div>
           )}
 
-          {/* Rewritten Summary */}
           {result.rewritten_summary && (
             <div>
               <button
