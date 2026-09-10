@@ -8,6 +8,7 @@ import chatRoutes from './routes/chat.js';
 import ragRoutes from './routes/rag.js';
 import authRoutes from './routes/auth.js';
 import coverLetterRoutes from './routes/coverLetter.js';
+import historyRoutes from './routes/history.js';
 
 dotenv.config();
 
@@ -28,6 +29,7 @@ app.use('/api/interview', interviewRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/rag', ragRoutes);
 app.use('/api/cover-letter', coverLetterRoutes);
+app.use('/api/history', historyRoutes);
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
